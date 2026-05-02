@@ -22,6 +22,7 @@ pub fn run() {
             config::cmd_save_config,
             webview::navigate_workspace,
             webview::clear_session,
+            webview::apply_notifications_setting,
             notifications::send_notification,
             notifications::request_notification_permission,
             badge::set_badge_count,

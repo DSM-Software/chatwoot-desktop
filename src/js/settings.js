@@ -68,6 +68,13 @@ btnSave?.addEventListener('click', async () => {
 
     await invoke('cmd_save_config', { config: newConfig })
 
+    // Apply notification toggle immediately in the active WebView session
+    try {
+      await invoke('apply_notifications_setting', { enabled: newConfig.notificationsEnabled })
+    } catch (e) {
+      console.warn('[settings] apply_notifications_setting failed:', e)
+    }
+
     // Apply autostart change via plugin
     try {
       if (newConfig.openAtLogin) {

@@ -34,6 +34,13 @@ pub fn load_workspace(app: &AppHandle, url: &str) -> Result<(), String> {
 }
 
 /// Bridge scripts injected into the workspace WebView after load.
+fn config_shim_js(notifications_enabled: bool) -> String {
+    format!(
+        "window.__cwDesktop = {{ notificationsEnabled: {} }};",
+        notifications_enabled
+    )
+}
+
 fn notification_bridge_js() -> &'static str {
     include_str!("../../src/js/notification-bridge.js")
 }
@@ -59,9 +66,10 @@ pub fn on_page_loaded(app: &AppHandle, webview: &tauri::Webview<tauri::Wry>, url
     // Injected on workspace (remote) pages
     let config = crate::config::load_config(app);
 
-    if config.notifications_enabled {
-        let _ = webview.eval(notification_bridge_js());
-    }
+    // Inject config shim first so the bridge can read it synchronously
+    let _ = webview.eval(&config_shim_js(config.notifications_enabled));
+    // Always inject the bridge; it checks window.__cwDesktop.notificationsEnabled internally
+    let _ = webview.eval(notification_bridge_js());
 
     // Badge bridge wrapped in try/catch (task 11.3)
     let _ = webview.eval(&format!(
@@ -90,6 +98,19 @@ pub fn on_page_load_error(app: &AppHandle, webview: &tauri::Webview<tauri::Wry>,
             serde_json::json!({ "message": msg }),
         );
     });
+}
+
+#[tauri::command]
+pub fn apply_notifications_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    let js = format!(
+        "window.__cwDesktop && (window.__cwDesktop.notificationsEnabled = {});",
+        enabled
+    );
+    window.eval(&js).map_err(|e| format!("eval failed: {}", e))
 }
 
 #[tauri::command]

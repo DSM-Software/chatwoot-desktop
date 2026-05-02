@@ -13,6 +13,11 @@
   const OriginalNotification = window.Notification
 
   function TauriNotification(title, options) {
+    // Respect the runtime toggle synchronously via the injected config shim
+    if (!window.__cwDesktop?.notificationsEnabled) {
+      return new OriginalNotification(title, options)
+    }
+
     // Call send_notification Tauri command
     try {
       const body = options?.body || ''
