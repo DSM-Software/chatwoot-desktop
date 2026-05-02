@@ -12,7 +12,7 @@ pub fn send_notification(app: AppHandle, title: String, body: String) -> Result<
 }
 
 #[tauri::command]
-pub fn request_notification_permission(#[cfg(target_os = "macos")] app: AppHandle) -> Result<String, String> {
+pub fn request_notification_permission(app: AppHandle) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
         use tauri_plugin_notification::PermissionState;
@@ -22,7 +22,7 @@ pub fn request_notification_permission(#[cfg(target_os = "macos")] app: AppHandl
             .permission_state()
             .map_err(|e| format!("Failed to get permission state: {}", e))?;
 
-        match permission {
+        return match permission {
             PermissionState::Granted => Ok("granted".to_string()),
             PermissionState::Denied => Ok("denied".to_string()),
             _ => {
@@ -36,11 +36,14 @@ pub fn request_notification_permission(#[cfg(target_os = "macos")] app: AppHandl
                     _ => Ok("denied".to_string()),
                 }
             }
-        }
+        };
     }
 
     // On Windows and other platforms, notification access is managed via OS settings.
     // No runtime permission dialog is available.
     #[cfg(not(target_os = "macos"))]
-    Ok("granted".to_string())
+    {
+        let _ = app;
+        return Ok("granted".to_string());
+    }
 }

@@ -71,7 +71,8 @@ pub fn run() {
                     }
                 }
                 WindowEvent::Focused(true) => {
-                    // Clear dock badge optimistically on focus (task 11.4)
+                    // Clear dock badge optimistically on focus (macOS only)
+                    #[cfg(target_os = "macos")]
                     if let Some(main_win) = app.get_webview_window("main") {
                         let _ = main_win.set_badge_label(None);
                     }
