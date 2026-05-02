@@ -1,39 +1,53 @@
 # Chatwoot Desktop
 
-A native macOS desktop client for [Chatwoot](https://www.chatwoot.com), built with [Tauri v2](https://tauri.app) and vanilla JavaScript.
+A native desktop client for [Chatwoot](https://www.chatwoot.com), built with [Tauri v2](https://tauri.app) and vanilla JavaScript.
 
-The app wraps the Chatwoot web app in a persistent, native macOS window with session persistence, desktop notifications, dock badge support, and a system tray icon.
+The app wraps the Chatwoot web app in a persistent native window with session persistence, desktop notifications, dock/taskbar badge support, and a system tray icon.
+
+**Supported platforms:** macOS (Intel + Apple Silicon) · Windows 11
+
+---
+
+## Features
+
+- Persistent session — stay signed in between launches
+- Native desktop notifications forwarded from the Chatwoot web app
+- Dock badge (macOS) / taskbar badge (Windows) showing unread conversation count
+- System tray icon with quick actions
+- Open at login option
+- Hide to tray instead of quitting
+- First-run setup screen for any Chatwoot instance (cloud or self-hosted)
 
 ---
 
 ## Prerequisites
 
-| Tool | Version |
-|------|---------|
-| Rust | ≥ 1.77 (`rustup update stable`) |
-| Node.js | ≥ 18 |
-| npm | ≥ 9 |
-| Xcode Command Line Tools | latest (`xcode-select --install`) |
-
-Install the Tauri CLI:
-
-```bash
-npm install           # installs @tauri-apps/cli and vite
-```
+| Tool | Version | Install |
+|------|---------|---------|
+| Rust | ≥ 1.77 | [rustup.rs](https://rustup.rs) |
+| Node.js | ≥ 18 | [nodejs.org](https://nodejs.org) |
+| npm | ≥ 9 | bundled with Node.js |
+| Xcode CLT *(macOS only)* | latest | `xcode-select --install` |
+| WebView2 *(Windows only)* | latest | pre-installed on Windows 11 |
 
 ---
 
-## Development
+## Getting Started
 
 ```bash
+git clone https://github.com/YOUR_USERNAME/chatwoot-desktop.git
+cd chatwoot-desktop
+npm install
 npm run tauri dev
 ```
 
-This starts the Vite dev server on `http://localhost:5173` and launches the app with hot-reload for the frontend. Rust changes require a restart.
+This starts the Vite dev server and launches the app with hot-reload for the frontend. Rust changes require a restart.
 
 ---
 
-## Build (macOS)
+## Building
+
+### macOS
 
 ```bash
 npm run tauri build
@@ -43,47 +57,30 @@ Produces:
 - `src-tauri/target/release/bundle/macos/Chatwoot.app`
 - `src-tauri/target/release/bundle/dmg/Chatwoot_*.dmg`
 
-For a universal binary (arm64 + x86_64):
+Universal binary (Intel + Apple Silicon):
 
 ```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
 npm run tauri build -- --target universal-apple-darwin
 ```
 
-> Requires both `aarch64-apple-darwin` and `x86_64-apple-darwin` Rust targets:
-> ```bash
-> rustup target add aarch64-apple-darwin x86_64-apple-darwin
-> ```
+### Windows
 
----
+```bash
+npm run tauri build
+```
 
-## Replacing the App Icon
+Produces:
+- `src-tauri/target/release/bundle/nsis/Chatwoot_*_x64-setup.exe`
 
-1. Replace the source icon file (e.g. a 1024×1024 PNG named `app-icon.png`)
-2. Run:
-   ```bash
-   npm run tauri icon app-icon.png
-   ```
-   This generates all required sizes in `src-tauri/icons/`.
+### Automated releases (GitHub Actions)
 
----
+Pushing a version tag triggers the CI workflow, which builds for both platforms and creates a GitHub Release with the installers attached:
 
-## First Run
-
-On first launch, the app shows a setup screen. Enter your Chatwoot workspace URL (e.g. `https://app.chatwoot.com` or your self-hosted instance). The URL is saved locally and restored on subsequent launches.
-
----
-
-## Settings
-
-Open Settings via **View → Settings** or **⌘,**.
-
-| Setting | Description |
-|---------|-------------|
-| Workspace URL | Your Chatwoot instance URL |
-| Open at login | Register as a macOS Login Item |
-| Keep running when closed | Hide to tray instead of quitting |
-| Desktop notifications | Forward Chatwoot notifications to macOS |
-| Clear session | Sign out and delete stored session data |
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ---
 
@@ -91,69 +88,100 @@ Open Settings via **View → Settings** or **⌘,**.
 
 ```
 chatwoot-desktop/
-├── src/                       # Vanilla JS/HTML/CSS frontend (shell UI)
-│   ├── index.html             # Single HTML shell with all views
-│   ├── css/main.css           # System-adaptive styles
+├── src/                            # Frontend (vanilla JS/HTML/CSS shell)
+│   ├── index.html                  # Single HTML shell with all views
+│   ├── css/main.css                # System-adaptive styles
 │   └── js/
-│       ├── api.js             # Tauri IPC wrapper
-│       ├── router.js          # View show/hide
-│       ├── validate-url.js    # Shared URL validation
-│       ├── setup.js           # First-run setup screen
-│       ├── app.js             # App/loading view controller
-│       ├── error.js           # Error screen handler
-│       ├── settings.js        # Settings screen
+│       ├── api.js                  # Tauri IPC wrapper
+│       ├── router.js               # View show/hide logic
+│       ├── validate-url.js         # Shared URL validation
+│       ├── setup.js                # First-run setup screen
+│       ├── app.js                  # App/loading view controller
+│       ├── error.js                # Error screen handler
+│       ├── settings.js             # Settings screen
 │       ├── notification-bridge.js  # Injected: overrides window.Notification
 │       └── badge-bridge.js         # Injected: polls DOM for unread count
-└── src-tauri/                 # Rust / Tauri backend
+└── src-tauri/                      # Rust / Tauri backend
     ├── src/
-    │   ├── main.rs            # Entry point
-    │   ├── lib.rs             # App setup, plugin registration
-    │   ├── config.rs          # AppConfig struct, load/save via tauri-plugin-store
-    │   ├── window.rs          # Window creation, geometry persistence
-    │   ├── menu.rs            # Native macOS menu
-    │   ├── tray.rs            # System tray icon
-    │   ├── webview.rs         # Navigation, external link interception, bridge injection
-    │   ├── notifications.rs   # Native notification commands
-    │   └── badge.rs           # Dock badge command
-    └── tauri.conf.json        # App configuration
+    │   ├── main.rs                 # Entry point
+    │   ├── lib.rs                  # App setup, plugin registration
+    │   ├── config.rs               # AppConfig struct (tauri-plugin-store)
+    │   ├── window.rs               # Window creation, geometry persistence
+    │   ├── menu.rs                 # Native menu bar
+    │   ├── tray.rs                 # System tray icon
+    │   ├── webview.rs              # Navigation, link interception, JS injection
+    │   ├── notifications.rs        # Native notification commands
+    │   └── badge.rs                # Dock/taskbar badge command
+    └── tauri.conf.json             # App configuration
 ```
 
 ---
 
 ## Known Limitations
 
-### WebView notification forwarding
-Chatwoot uses the browser `Notification` API. On macOS, WKWebView does not reliably forward these to the system notification center without special entitlements. This app overrides `window.Notification` in the WebView via JS injection and forwards calls to `tauri-plugin-notification`. This approach requires macOS notification permission to be granted.
+**WebView notification timing** — The JS notification bridge is injected after `pageLoadFinished`. Notifications fired before Chatwoot fully bootstraps may use the original browser `Notification` constructor and not reach the system notification center.
 
-**Limitation**: The JS injection fires after `pageLoadFinished`, which means very early notifications (before the Chatwoot app is fully bootstrapped) may use the original `Notification` constructor. This is rare in practice.
+**Badge selector fragility** — The dock/taskbar badge is updated by polling `document.querySelector('[data-key="conversations-badge"]')` every 5 seconds. If Chatwoot changes this DOM structure, the badge silently stops updating. To fix it, update `BADGE_SELECTORS` in `src/js/badge-bridge.js`.
 
-### Badge DOM selector fragility
-The dock badge is updated by polling `document.querySelector('[data-key="conversations-badge"]')` every 5 seconds in the injected `badge-bridge.js`. If Chatwoot changes this DOM structure, the badge will silently stop updating. The app will not crash; the badge simply retains its last value or shows nothing.
+**macOS notarization** — Distributing outside the Mac App Store requires Apple notarization. See [Tauri's notarization guide](https://tauri.app/distribute/sign/macos/).
 
-To fix a broken selector, update `BADGE_SELECTORS` in `src/js/badge-bridge.js`.
+**IPC security** — `dangerousRemoteUrlIpcAccess` currently allows any HTTPS/HTTP domain. For production deployments, restrict it in `tauri.conf.json` to your specific workspace domain.
 
-### Notarization for distribution
-Distributing outside the Mac App Store requires notarization by Apple. Tauri v2 supports this workflow. You will need:
-- An Apple Developer account
-- A Developer ID Application certificate
-- Xcode tools with `notarytool`
+---
 
-See [Tauri's notarization guide](https://tauri.app/distribute/sign/macos/) for full instructions.
+## Contributing
 
-### Session clearing
-The "Clear session" action clears `localStorage`, `sessionStorage`, and cookies accessible via JavaScript. It also deletes the app's WebView data directory on disk. However, WKWebView may cache some data in memory for the current session. A full session clear takes full effect after restarting the app.
+Contributions are welcome. Please read the guidelines below before opening a PR.
 
-### IPC security
-`dangerousRemoteUrlIpcAccess` is currently set to allow any HTTPS/HTTP domain. For production deployments, update `tauri.conf.json` to restrict IPC access to only your workspace domain:
+### Reporting bugs
 
-```json
-"dangerousRemoteUrlIpcAccess": [
-  {
-    "scheme": "https",
-    "domain": "your-workspace.chatwoot.com",
-    "windows": ["main"],
-    "plugins": [],
-    "enableBrownfield": false
-  }
-]
+Open an issue and include:
+- OS and version (e.g. macOS 15.1, Windows 11 23H2)
+- App version
+- Steps to reproduce
+- What you expected vs. what happened
+- Relevant logs (open DevTools via **View → Developer Tools**)
+
+### Suggesting features
+
+Open an issue with the `enhancement` label. Describe the use case and why the feature belongs in a desktop wrapper rather than in the Chatwoot web app itself.
+
+### Submitting a pull request
+
+1. Fork the repository and create a branch from `main`:
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+
+2. Make your changes. Keep commits focused — one logical change per commit.
+
+3. Test on at least the platform you changed. If you touched Rust code, test on both macOS and Windows if possible.
+
+4. Open a pull request against `main` with a clear description of what changed and why.
+
+### Development tips
+
+- Frontend changes (JS/CSS/HTML) hot-reload automatically — no restart needed.
+- Rust changes require restarting `npm run tauri dev`.
+- Use **View → Developer Tools** in the running app to inspect the frontend shell.
+- The Chatwoot WebView is a separate context — use the DevTools console and inject `window.__TAURI__` calls to debug IPC.
+
+### Replacing the app icon
+
+```bash
+npm run tauri icon path/to/icon-1024x1024.png
 ```
+
+This regenerates all required sizes in `src-tauri/icons/`.
+
+### Code style
+
+- Rust: standard `rustfmt` formatting (`cargo fmt`)
+- JavaScript: no framework, no build-time transpilation — keep it vanilla
+- Avoid adding dependencies unless strictly necessary
+
+---
+
+## License
+
+MIT
