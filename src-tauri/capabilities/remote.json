@@ -1,0 +1,13 @@
+{
+  "identifier": "remote-workspace",
+  "description": "Grants injected bridge scripts IPC access from the workspace URL",
+  "remote": {
+    "urls": ["http://**", "https://**"]
+  },
+  "windows": ["main"],
+  "permissions": [
+    "core:event:default",
+    "notification:default",
+    "store:allow-get"
+  ]
+}
